@@ -1,5 +1,4 @@
-import Footer from "@/components/shared/Footer";
-import Navbar from "@/components/shared/Navbar";
+import BottomNavBar from "@/components/shared/BottomNavBar";
 import React from "react";
 
 export default function CommonLayout({
@@ -8,10 +7,9 @@ export default function CommonLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div>
-      <Navbar />
-      {children}
-      <Footer />
+    <div style={{ minHeight: "100dvh", background: "var(--background)" }}>
+      <main className="page-content">{children}</main>
+      <BottomNavBar />
     </div>
   );
 }

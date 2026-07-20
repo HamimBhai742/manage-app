@@ -2,140 +2,120 @@
 
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  Users, 
-  ShoppingBag, 
-  TrendingUp, 
-  DollarSign 
-} from "lucide-react";
+import { useGetOrderStatsQuery } from "@/redux/features/orderApi";
+import { useGetAllProductsAdminQuery } from "@/redux/features/productApi";
+import { Users, ShoppingBag, TrendingUp, DollarSign, Clock, CheckCircle, XCircle, Package } from "lucide-react";
 
 export default function DashboardOverview() {
   const { user } = useAuth();
+  const { data: statsData } = useGetOrderStatsQuery(undefined);
+  const { data: productsData } = useGetAllProductsAdminQuery(undefined);
 
-  const stats = [
+  const stats = statsData?.data;
+  const products = productsData?.data || [];
+
+  const cards = [
     {
-      name: "Total Users",
-      value: "1,248",
-      change: "+12.3%",
-      changeType: "positive",
-      icon: Users,
-    },
-    {
-      name: "Active Orders",
-      value: "45",
-      change: "+8.1%",
-      changeType: "positive",
+      name: "Total Orders",
+      value: stats?.total ?? "—",
       icon: ShoppingBag,
+      color: "#6366f1",
     },
     {
-      name: "Conversion Rate",
-      value: "4.8%",
-      change: "-1.2%",
-      changeType: "negative",
-      icon: TrendingUp,
+      name: "Pending",
+      value: stats?.pending ?? "—",
+      icon: Clock,
+      color: "#f59e0b",
     },
     {
-      name: "Revenue",
-      value: "$12,450",
-      change: "+24.5%",
-      changeType: "positive",
+      name: "Approved",
+      value: stats?.approved ?? "—",
+      icon: CheckCircle,
+      color: "#10b981",
+    },
+    {
+      name: "Revenue (৳)",
+      value: stats?.totalRevenue ? `৳${Number(stats.totalRevenue).toLocaleString()}` : "৳0",
       icon: DollarSign,
+      color: "#8b5cf6",
     },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Welcome Heading */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          Welcome back, {user?.name || "Admin"}!
+    <div style={{ maxWidth: 1200 }}>
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 26, fontWeight: 800, color: "var(--foreground)" }}>
+          Welcome back, {user?.name || "Admin"} 👋
         </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Here is what is happening with your store today.
+        <p style={{ fontSize: 14, color: "var(--muted)", marginTop: 4 }}>
+          Here is your store overview for today.
         </p>
       </div>
 
-      {/* Grid Stats */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
+      {/* Stats grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        {cards.map((card) => {
+          const Icon = card.icon;
           return (
-            <div
-              key={stat.name}
-              className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-all hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                  {stat.name}
-                </span>
-                <div className="rounded-xl bg-zinc-50 p-2.5 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300">
-                  <Icon size={20} />
+            <div key={card.name} className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>{card.name}</span>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                  background: card.color + "20"
+                }}>
+                  <Icon size={20} style={{ color: card.color }} />
                 </div>
               </div>
-              <div className="mt-4">
-                <span className="text-3xl font-bold text-zinc-900 dark:text-white">
-                  {stat.value}
-                </span>
-                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold">
-                  <span
-                    className={
-                      stat.changeType === "positive"
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                    }
-                  >
-                    {stat.change}
-                  </span>
-                  <span className="text-zinc-400">from last month</span>
-                </div>
-              </div>
+              <span style={{ fontSize: 28, fontWeight: 900, color: "var(--foreground)" }}>{card.value}</span>
             </div>
           );
         })}
       </div>
 
-      {/* Analytics Card Mock */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
-            Sales Performance
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            A visual overview of monthly sales trends.
-          </p>
-          <div className="mt-6 flex h-64 items-center justify-center rounded-xl bg-zinc-50 border border-dashed border-zinc-200 dark:bg-zinc-850 dark:border-zinc-800">
-            <span className="text-sm text-zinc-400">
-              Chart visualization goes here
-            </span>
-          </div>
+      {/* Products summary */}
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700 }}>Product Inventory</h3>
+          <a href="/dashboard/products" style={{ fontSize: 13, color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}>
+            Manage →
+          </a>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
-            Recent Activity
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Realtime events logged across the dashboard.
-          </p>
-          <div className="mt-6 space-y-4">
-            {[
-              { text: "New user registered", time: "2 min ago" },
-              { text: "Order #4592 completed", time: "10 min ago" },
-              { text: "Server configuration updated", time: "1 hour ago" },
-              { text: "Database backup finished", time: "4 hours ago" },
-            ].map((activity, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between border-b border-zinc-100 pb-3 last:border-0 last:pb-0 dark:border-zinc-850"
-              >
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {activity.text}
-                </span>
-                <span className="text-xs text-zinc-400">{activity.time}</span>
+        {products.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "var(--muted)" }}>
+            <Package size={32} style={{ margin: "0 auto 8px" }} />
+            <p>No products yet. Add your first product!</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {products.map((product: any) => (
+              <div key={product.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "12px 0", borderBottom: "1px solid var(--card-border)"
+              }}>
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 14 }}>{product.title}</p>
+                  <p style={{ fontSize: 12, color: "var(--muted)" }}>৳{product.price} per link</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: 13, fontWeight: 700 }}>{product.totalLinks} links</p>
+                    <p style={{ fontSize: 11, color: "var(--muted)" }}>{product.totalOrders} orders</p>
+                  </div>
+                  <div style={{
+                    padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                    background: product.isPublished ? "#d1fae5" : "var(--muted-bg)",
+                    color: product.isPublished ? "#059669" : "var(--muted)"
+                  }}>
+                    {product.isPublished ? "Live" : "Draft"}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -14,7 +14,10 @@ import {
   LogOut, 
   Sun, 
   Moon, 
-  User 
+  User,
+  ShoppingBag,
+  Package,
+  CreditCard
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 
@@ -30,8 +33,10 @@ export default function DashboardLayout({
 
   const navigation = [
     { name: "Overview", href: ROUTES.DASHBOARD.HOME, icon: LayoutDashboard },
+    { name: "Products", href: ROUTES.DASHBOARD.PRODUCTS, icon: ShoppingBag },
+    { name: "Orders", href: ROUTES.DASHBOARD.ORDERS, icon: Package },
     { name: "Users", href: ROUTES.DASHBOARD.USERS, icon: Users },
-    { name: "Settings", href: ROUTES.DASHBOARD.SETTINGS, icon: Settings },
+    { name: "Payments", href: ROUTES.DASHBOARD.SETTINGS, icon: CreditCard },
   ];
 
   return (
