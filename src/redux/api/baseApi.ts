@@ -16,6 +16,6 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["User", "Product", "Order", "Link", "PaymentSetting"], // Define common tag types for caching & invalidation
+  tagTypes: ["User", "Product", "Order", "Link", "PaymentSetting", "ChatMessage", "Notification"], // Define common tag types for caching & invalidation
   endpoints: () => ({}), // Endpoints will be injected dynamically via api.injectEndpoints() in modules
 });

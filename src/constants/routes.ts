@@ -3,6 +3,7 @@ export const ROUTES = {
   PRODUCTS: "/products",
   PRODUCT_DETAIL: (id: string) => `/products/${id}`,
   ORDERS: "/orders",
+  SUPPORT: "/support",
   PROFILE: "/profile",
   LOGIN: "/login",
   REGISTER: "/register",
@@ -13,6 +14,7 @@ export const ROUTES = {
     PRODUCTS: "/dashboard/products",
     PRODUCT_LINKS: (id: string) => `/dashboard/products/${id}/links`,
     ORDERS: "/dashboard/orders",
+    CHAT: "/dashboard/chat",
     SETTINGS: "/dashboard/settings",
   },
 } as const;

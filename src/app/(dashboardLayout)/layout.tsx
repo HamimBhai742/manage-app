@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "next-themes";
+import NotificationBell from "@/components/dashboard/NotificationBell";
 import { 
   LayoutDashboard, 
   Users, 
@@ -17,7 +18,8 @@ import {
   User,
   ShoppingBag,
   Package,
-  CreditCard
+  CreditCard,
+  MessageCircle
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 
@@ -35,6 +37,7 @@ export default function DashboardLayout({
     { name: "Overview", href: ROUTES.DASHBOARD.HOME, icon: LayoutDashboard },
     { name: "Products", href: ROUTES.DASHBOARD.PRODUCTS, icon: ShoppingBag },
     { name: "Orders", href: ROUTES.DASHBOARD.ORDERS, icon: Package },
+    { name: "Live Chat", href: ROUTES.DASHBOARD.CHAT, icon: MessageCircle },
     { name: "Users", href: ROUTES.DASHBOARD.USERS, icon: Users },
     { name: "Payments", href: ROUTES.DASHBOARD.SETTINGS, icon: CreditCard },
   ];
@@ -141,6 +144,8 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <NotificationBell />
+
             {/* Theme Toggle Button */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

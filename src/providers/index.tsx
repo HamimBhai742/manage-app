@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { ThemeProvider } from "next-themes";
 import { store } from "@/redux/store";
 import { AuthProvider } from "@/context/AuthContext";
+import { SocketProvider } from "@/context/SocketContext";
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -19,7 +20,9 @@ export default function AppProviders({ children }: AppProvidersProps) {
         enableSystem
         disableTransitionOnChange
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <SocketProvider>{children}</SocketProvider>
+        </AuthProvider>
       </ThemeProvider>
     </Provider>
   );

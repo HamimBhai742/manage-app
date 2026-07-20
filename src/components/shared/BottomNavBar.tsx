@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, Package, User } from "lucide-react";
+import { Home, ShoppingBag, Package, HelpCircle, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ROUTES } from "@/constants/routes";
 
@@ -10,6 +10,7 @@ const navItems = [
   { label: "Home", href: ROUTES.HOME, icon: Home },
   { label: "Products", href: ROUTES.PRODUCTS, icon: ShoppingBag },
   { label: "Orders", href: ROUTES.ORDERS, icon: Package, authRequired: true },
+  { label: "Support", href: ROUTES.SUPPORT, icon: HelpCircle },
   { label: "Profile", href: ROUTES.PROFILE, icon: User, authRequired: true },
 ];
 
