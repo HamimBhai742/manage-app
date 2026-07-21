@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -13,10 +14,11 @@ import {
   Search,
   Package,
   Sparkles,
-  ExternalLink,
-  Tag,
-  DollarSign,
   Layers,
+  Upload,
+  Image as ImageIcon,
+  CheckCircle2,
+  Globe,
 } from "lucide-react";
 import {
   useGetAllProductsAdminQuery,
@@ -25,6 +27,7 @@ import {
   useTogglePublishMutation,
   useDeleteProductMutation,
 } from "@/redux/features/productApi";
+import { uploadToCloudinary } from "@/utils/cloudinary";
 
 interface ProductFormData {
   title: string;
@@ -48,6 +51,9 @@ export default function AdminProductsView() {
   const [form, setForm] = useState<ProductFormData>(emptyForm);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageInputMode, setImageInputMode] = useState<"file" | "url">("file");
 
   const products = data?.data || [];
 
@@ -74,6 +80,28 @@ export default function AdminProductsView() {
     });
     setError("");
     setShowForm(true);
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (PNG, JPG, WEBP)");
+      return;
+    }
+
+    setUploadingImage(true);
+    setError("");
+
+    try {
+      const secureUrl = await uploadToCloudinary(file);
+      setForm((prev) => ({ ...prev, thumbnail: secureUrl }));
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image to Cloudinary");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -448,54 +476,169 @@ export default function AdminProductsView() {
                 <label className="label">Description</label>
                 <textarea
                   className="input"
-                  style={{ minHeight: 90, resize: "vertical" }}
+                  style={{ minHeight: 84, resize: "vertical" }}
                   placeholder="Short summary of offer details, duration, region restrictions..."
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-                <div>
-                  <label className="label">Price per Link (৳) *</label>
-                  <input
-                    className="input"
-                    type="number"
-                    placeholder="150"
-                    value={form.price}
-                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  />
+              <div>
+                <label className="label">Price per Link (৳) *</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="150"
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                />
+              </div>
+
+              {/* ── Product Thumbnail Section (Cloudinary Upload) ── */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <label className="label" style={{ margin: 0 }}>Product Thumbnail Image</label>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setImageInputMode("file")}
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: 8,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        border: "none",
+                        background: imageInputMode === "file" ? "rgba(90,95,239,0.12)" : "transparent",
+                        color: imageInputMode === "file" ? "var(--primary)" : "var(--muted)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      📁 Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageInputMode("url")}
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: 8,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        border: "none",
+                        background: imageInputMode === "url" ? "rgba(90,95,239,0.12)" : "transparent",
+                        color: imageInputMode === "url" ? "var(--primary)" : "var(--muted)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      🔗 Paste URL
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="label">Thumbnail Image URL</label>
+                {imageInputMode === "file" ? (
+                  <div style={{
+                    position: "relative",
+                    borderRadius: 14,
+                    border: "2px dashed var(--card-border)",
+                    padding: "20px 16px",
+                    textAlign: "center",
+                    background: "var(--muted-bg)",
+                    transition: "all 0.2s",
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        opacity: 0,
+                        width: "100%",
+                        height: "100%",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 12,
+                        background: "rgba(90,95,239,0.1)",
+                        color: "var(--primary)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}>
+                        {uploadingImage ? <span className="spinner" /> : <Upload size={20} />}
+                      </div>
+
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 800, color: "var(--foreground)", margin: "0 0 2px" }}>
+                          {uploadingImage ? "Uploading to Cloudinary..." : "Click or drag image file to upload"}
+                        </p>
+                        <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
+                          PNG, JPG, WEBP up to 5MB (Auto-converts to Cloudinary CDN URL)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                   <input
                     className="input"
-                    placeholder="https://..."
+                    placeholder="https://res.cloudinary.com/..."
                     value={form.thumbnail}
                     onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
                   />
-                </div>
-              </div>
+                )}
 
-              {form.thumbnail && (
-                <div style={{
-                  padding: 12,
-                  borderRadius: 14,
-                  background: "var(--muted-bg)",
-                  border: "1px solid var(--card-border)",
-                  textAlign: "center",
-                }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 6 }}>
-                    Thumbnail Preview
-                  </p>
-                  <img
-                    src={form.thumbnail}
-                    alt="Preview"
-                    style={{ maxHeight: 90, maxWidth: "100%", objectFit: "contain", borderRadius: 8, margin: "0 auto" }}
-                  />
-                </div>
-              )}
+                {/* Uploaded / Selected Thumbnail Preview */}
+                {form.thumbnail && (
+                  <div style={{
+                    marginTop: 10,
+                    padding: 12,
+                    borderRadius: 14,
+                    background: "var(--muted-bg)",
+                    border: "1px solid var(--card-border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                      <img
+                        src={form.thumbnail}
+                        alt="Thumbnail preview"
+                        style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 11.5, fontWeight: 800, color: "var(--foreground)", margin: "0 0 2px", display: "flex", alignItems: "center", gap: 4 }}>
+                          <CheckCircle2 size={13} style={{ color: "#10b981" }} /> Cloudinary URL Ready
+                        </p>
+                        <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {form.thumbnail}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, thumbnail: "" }))}
+                      style={{
+                        padding: "5px 10px",
+                        borderRadius: 8,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: "rgba(239,68,68,0.1)",
+                        color: "#ef4444",
+                        border: "none",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {error && (
                 <div style={{
@@ -515,10 +658,10 @@ export default function AdminProductsView() {
                 <button
                   className="btn btn-primary btn-full"
                   onClick={handleSubmit}
-                  disabled={creating || updating}
+                  disabled={creating || updating || uploadingImage}
                   style={{ height: 46, borderRadius: 14 }}
                 >
-                  {(creating || updating) && <span className="spinner" />}
+                  {(creating || updating || uploadingImage) && <span className="spinner" />}
                   {editId ? "Update Product" : "Create Product"}
                 </button>
               </div>

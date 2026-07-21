@@ -1,14 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, Link as LinkIcon, Upload, Copy, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Link as LinkIcon,
+  UploadCloud,
+  Copy,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Upload,
+} from "lucide-react";
 import {
   useGetLinksByProductQuery,
   useBulkAddLinksMutation,
   useDeleteLinkMutation,
   useDeleteAllUnusedLinksMutation,
 } from "@/redux/features/linkApi";
+import { ROUTES } from "@/constants/routes";
 
 export default function LinkInventoryView() {
   const { id: productId } = useParams() as { id: string };
@@ -29,14 +43,53 @@ export default function LinkInventoryView() {
   const usedCount = links.filter((l: any) => l.isUsed).length;
   const unusedCount = links.filter((l: any) => !l.isUsed).length;
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setSuccess("");
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        // Split by newlines or carriage returns, clean each line
+        const parsedUrls = content
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0);
+
+        if (parsedUrls.length === 0) {
+          setError("No links found in the uploaded file.");
+          return;
+        }
+
+        setBulkText(parsedUrls.join("\n"));
+        setSuccess(`📄 Extracted ${parsedUrls.length} offer links from ${file.name}`);
+      }
+    };
+
+    reader.onerror = () => {
+      setError("Failed to read the uploaded file.");
+    };
+
+    reader.readAsText(file);
+  };
+
   const handleBulkAdd = async () => {
-    setError(""); setSuccess("");
-    const urls = bulkText.split("\n").map((u: string) => u.trim()).filter((u: string) => u.length > 0);
-    if (urls.length === 0) return setError("Please enter at least one URL");
+    setError("");
+    setSuccess("");
+    const urls = bulkText
+      .split(/\r?\n/)
+      .map((u: string) => u.trim())
+      .filter((u: string) => u.length > 0);
+
+    if (urls.length === 0) return setError("Please enter or upload at least one URL");
 
     try {
       const result = await bulkAdd({ productId, urls }).unwrap();
-      setSuccess(`✅ ${result.data.added} links added successfully!`);
+      setSuccess(`✅ ${result.data?.added || urls.length} links added successfully!`);
       setBulkText("");
       setShowAdd(false);
       refetch();
@@ -46,9 +99,13 @@ export default function LinkInventoryView() {
   };
 
   const handleDeleteAll = async () => {
-    if (!confirm(`Delete all ${unusedCount} unused links?`)) return;
-    await deleteAll(productId);
-    refetch();
+    if (!confirm(`Are you sure you want to delete all ${unusedCount} unused links?`)) return;
+    try {
+      await deleteAll(productId).unwrap();
+      refetch();
+    } catch (err: any) {
+      setError(err?.data?.message || "Failed to delete unused links");
+    }
   };
 
   const copyUrl = (id: string, url: string) => {
@@ -58,160 +115,415 @@ export default function LinkInventoryView() {
   };
 
   return (
-    <div className="max-w-5xl flex flex-col gap-6">
-      <button
-        onClick={() => router.back()}
-        className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-      >
-        <ArrowLeft size={16} /> Back to Products
-      </button>
+    <div style={{ maxWidth: 1140, display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── Back Navigation ── */}
+      <div>
+        <button
+          onClick={() => router.push(ROUTES.DASHBOARD.PRODUCTS)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "none",
+            border: "none",
+            color: "var(--primary)",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+            padding: 0,
+            fontFamily: "inherit",
+          }}
+        >
+          <ArrowLeft size={16} /> Back to Products
+        </button>
+      </div>
 
-      {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+      {/* ── Page Header & Stats ── */}
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "22px 24px",
+        background: "var(--card)",
+        border: "1.5px solid var(--card-border)",
+        borderRadius: 22,
+        boxShadow: "var(--shadow-sm)",
+        gap: 16,
+      }}>
         <div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <LinkIcon className="text-indigo-600" size={24} />
-            Link Inventory Management
-          </h2>
-          <div className="flex items-center gap-3 mt-2 text-xs font-semibold">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #5a5fef, #7c3aed)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 6px 16px rgba(90,95,239,0.3)",
+              color: "white",
+            }}>
+              <LinkIcon size={20} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, color: "var(--foreground)", letterSpacing: "-0.03em", margin: 0 }}>
+              Link Inventory Management
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, fontSize: 12 }}>
+            <span style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "3px 10px",
+              borderRadius: 999,
+              fontWeight: 800,
+              background: "rgba(16,185,129,0.1)",
+              color: "#059669",
+              border: "1px solid rgba(16,185,129,0.2)",
+            }}>
               {unusedCount} Available
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+            <span style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "3px 10px",
+              borderRadius: 999,
+              fontWeight: 800,
+              background: "var(--muted-bg)",
+              color: "var(--muted)",
+              border: "1px solid var(--card-border)",
+            }}>
               {usedCount} Used
             </span>
-            <span className="text-slate-400 font-normal">({links.length} total URLs)</span>
+            <span style={{ color: "var(--muted)", fontWeight: 600 }}>
+              ({links.length} total URLs in stock)
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           {unusedCount > 0 && (
             <button
               onClick={handleDeleteAll}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 text-xs font-bold transition-colors"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "10px 16px",
+                borderRadius: 12,
+                background: "rgba(239,68,68,0.08)",
+                color: "#ef4444",
+                border: "1px solid rgba(239,68,68,0.2)",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "all 0.18s",
+              }}
             >
               <Trash2 size={14} /> Clear Unused
             </button>
           )}
+
           <button
+            className="btn btn-primary"
             onClick={() => setShowAdd(!showAdd)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition-all"
+            style={{ padding: "10px 20px", borderRadius: 12 }}
           >
             <Plus size={16} /> Bulk Add Links
           </button>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* ── Success / Error Banners ── */}
       {success && (
-        <div className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-900/50 dark:text-emerald-300 p-3.5 text-xs font-bold">
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="rounded-xl bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/60 dark:border-rose-900/50 dark:text-rose-300 p-3.5 text-xs font-bold">
-          {error}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 16px",
+          borderRadius: 14,
+          background: "rgba(16,185,129,0.1)",
+          border: "1px solid rgba(16,185,129,0.25)",
+          color: "#059669",
+          fontSize: 13,
+          fontWeight: 700,
+        }}>
+          <CheckCircle2 size={16} />
+          <span>{success}</span>
         </div>
       )}
 
-      {/* Bulk Add Form */}
+      {error && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 16px",
+          borderRadius: 14,
+          background: "var(--danger-bg)",
+          border: "1px solid rgba(239,68,68,0.25)",
+          color: "var(--danger)",
+          fontSize: 13,
+          fontWeight: 700,
+        }}>
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* ── Bulk Import Form Box ── */}
       {showAdd && (
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-indigo-500/80 p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-extrabold text-base">
-            <Upload size={18} className="text-indigo-600" />
-            <h3>Bulk Import Inventory URLs</h3>
+        <div style={{
+          padding: 24,
+          borderRadius: 22,
+          background: "var(--card)",
+          border: "2px solid var(--primary)",
+          boxShadow: "var(--shadow-lg)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          animation: "animate-fade-in 0.2s ease",
+        }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                background: "rgba(90,95,239,0.12)",
+                color: "var(--primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <UploadCloud size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>
+                  Bulk Import Inventory URLs
+                </h3>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>
+                  Upload a `.txt` file or paste offer links ending with `==`. One link per line.
+                </p>
+              </div>
+            </div>
+
+            {/* File Upload Button */}
+            <div style={{ position: "relative" }}>
+              <input
+                type="file"
+                accept=".txt,.csv,text/plain"
+                onChange={handleFileUpload}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0,
+                  width: "100%",
+                  height: "100%",
+                  cursor: "pointer",
+                }}
+              />
+              <button
+                type="button"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 14px",
+                  borderRadius: 11,
+                  background: "rgba(90,95,239,0.08)",
+                  color: "var(--primary)",
+                  border: "1px solid rgba(90,95,239,0.2)",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <FileText size={14} />
+                <span>Choose .txt File</span>
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Paste one redeem link per line. Each line creates a single redeemable link item.
-          </p>
+
           <textarea
             rows={6}
-            placeholder="https://one.google.com/offer/redeem?code=...\nhttps://one.google.com/offer/redeem?code=..."
+            placeholder={`https://one.google.com/offer/redeem?code=XYZ...==\nhttps://one.google.com/offer/redeem?code=ABC...==`}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
-            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950/80 p-3.5 text-xs font-mono border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+            className="input"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 12.5,
+              padding: 14,
+              borderRadius: 14,
+              resize: "vertical",
+              minHeight: 130,
+            }}
           />
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-xs font-bold text-slate-400">
-              {bulkText.split("\n").filter((l) => l.trim()).length} link(s) ready to insert
+
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>
+              ⚡ {bulkText.split(/\r?\n/).filter((l) => l.trim()).length} link(s) ready to import
             </span>
-            <div className="flex items-center gap-2">
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button
                 onClick={() => setShowAdd(false)}
-                className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                style={{
+                  padding: "9px 16px",
+                  borderRadius: 12,
+                  background: "var(--muted-bg)",
+                  border: "1px solid var(--card-border)",
+                  color: "var(--foreground)",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
               >
                 Cancel
               </button>
               <button
+                className="btn btn-primary"
                 onClick={handleBulkAdd}
                 disabled={adding}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/25"
+                style={{ padding: "9px 20px", borderRadius: 12 }}
               >
                 {adding && <span className="spinner" />}
-                {adding ? "Inserting..." : "Upload Links"}
+                {adding ? "Importing..." : "Upload Links"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Links List */}
+      {/* ── Links Inventory Items List ── */}
       {isLoading ? (
-        <div className="space-y-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+            <div key={i} className="skeleton" style={{ height: 52, borderRadius: 14 }} />
           ))}
         </div>
       ) : links.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center text-slate-400">
-          <LinkIcon size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No links added yet</p>
-          <p className="text-xs text-slate-400 mt-1">Click &quot;Bulk Add Links&quot; to import Google Pro offer links.</p>
+        <div className="card" style={{ padding: "56px 24px", textAlign: "center" }}>
+          <LinkIcon size={46} style={{ color: "var(--muted-light)", margin: "0 auto 14px" }} />
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", marginBottom: 4 }}>
+            No links added yet
+          </h3>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
+            Click &quot;Bulk Add Links&quot; above or upload a `.txt` file containing your offer links.
+          </p>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+            <Plus size={14} /> Bulk Add Links
+          </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {links.map((link: any, idx: number) => (
             <div
               key={link.id}
-              className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
-                link.isUsed
-                  ? "bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-60"
-                  : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800/80 hover:border-indigo-300 dark:hover:border-slate-700"
-              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 18px",
+                borderRadius: 14,
+                background: "var(--card)",
+                border: "1.5px solid var(--card-border)",
+                boxShadow: "var(--shadow-xs)",
+                opacity: link.isUsed ? 0.6 : 1,
+                gap: 12,
+                transition: "all 0.18s",
+              }}
+              className="stat-card-hover"
             >
-              <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
-                <span className="text-xs font-mono font-bold text-slate-400 shrink-0 w-8">
+              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                <span style={{
+                  fontSize: 12,
+                  fontFamily: "var(--font-mono)",
+                  fontWeight: 800,
+                  color: "var(--muted)",
+                  width: 36,
+                  flexShrink: 0,
+                }}>
                   #{idx + 1}
                 </span>
-                <span className="text-xs font-mono truncate text-slate-800 dark:text-slate-200">
+
+                <span style={{
+                  fontSize: 12.5,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--foreground)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                }}>
                   {link.url}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    link.isUsed
-                      ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-                  }`}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <span style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "3px 9px",
+                  borderRadius: 999,
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  background: link.isUsed ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
+                  color: link.isUsed ? "#ef4444" : "#059669",
+                  border: link.isUsed ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(16,185,129,0.2)",
+                }}>
                   {link.isUsed ? "Used" : "Available"}
                 </span>
 
                 <button
                   onClick={() => copyUrl(link.id, link.url)}
-                  title="Copy URL"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  style={{
+                    background: "var(--muted-bg)",
+                    border: "1px solid var(--card-border)",
+                    borderRadius: 9,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "var(--muted)",
+                    transition: "all 0.18s",
+                  }}
+                  title="Copy URL to Clipboard"
                 >
-                  {copiedId === link.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  {copiedId === link.id ? (
+                    <Check size={14} style={{ color: "#10b981" }} />
+                  ) : (
+                    <Copy size={14} />
+                  )}
                 </button>
 
                 {!link.isUsed && (
                   <button
-                    onClick={async () => { await deleteLink(link.id); refetch(); }}
+                    onClick={async () => {
+                      await deleteLink(link.id);
+                      refetch();
+                    }}
+                    style={{
+                      background: "rgba(239,68,68,0.08)",
+                      border: "1px solid rgba(239,68,68,0.2)",
+                      borderRadius: 9,
+                      width: 32,
+                      height: 32,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      color: "#ef4444",
+                      transition: "all 0.18s",
+                    }}
                     title="Delete link"
-                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -224,4 +536,3 @@ export default function LinkInventoryView() {
     </div>
   );
 }
-
