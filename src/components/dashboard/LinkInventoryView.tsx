@@ -12,8 +12,10 @@ import {
   Copy,
   Check,
   CheckCircle2,
+  CheckSquare,
+  Square,
+  ExternalLink,
   AlertCircle,
-  FileText,
   FileCode,
 } from "lucide-react";
 import {
@@ -21,6 +23,7 @@ import {
   useBulkAddLinksMutation,
   useDeleteLinkMutation,
   useDeleteAllUnusedLinksMutation,
+  useDeleteSelectedLinksMutation,
 } from "@/redux/features/linkApi";
 import { ROUTES } from "@/constants/routes";
 
@@ -32,16 +35,50 @@ export default function LinkInventoryView() {
   const [bulkAdd, { isLoading: adding }] = useBulkAddLinksMutation();
   const [deleteLink] = useDeleteLinkMutation();
   const [deleteAll] = useDeleteAllUnusedLinksMutation();
+  const [deleteSelected, { isLoading: deletingSelected }] = useDeleteSelectedLinksMutation();
 
   const [bulkText, setBulkText] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const links = data?.data || [];
+  const unusedLinks = links.filter((l: any) => !l.isUsed);
   const usedCount = links.filter((l: any) => l.isUsed).length;
-  const unusedCount = links.filter((l: any) => !l.isUsed).length;
+  const unusedCount = unusedLinks.length;
+
+  const toggleSelect = (id: string, isUsed: boolean) => {
+    if (isUsed) return;
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllUnused = () => {
+    if (selectedIds.length === unusedCount) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(unusedLinks.map((l: any) => l.id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected links?`)) return;
+
+    setError("");
+    setSuccess("");
+    try {
+      const res = await deleteSelected(selectedIds).unwrap();
+      setSuccess(`✅ ${res.data?.deleted || selectedIds.length} selected links deleted!`);
+      setSelectedIds([]);
+      refetch();
+    } catch (err: any) {
+      setError(err?.data?.message || "Failed to delete selected links");
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,7 +93,6 @@ export default function LinkInventoryView() {
       if (content) {
         let parsedUrls: string[] = [];
 
-        // Check if file is JSON or content is formatted as JSON
         if (file.name.endsWith(".json") || content.trim().startsWith("[") || content.trim().startsWith("{")) {
           try {
             const json = JSON.parse(content);
@@ -93,7 +129,6 @@ export default function LinkInventoryView() {
           }
         }
 
-        // Fallback to line-by-line text parsing if JSON didn't yield links
         if (parsedUrls.length === 0) {
           parsedUrls = content
             .split(/\r?\n/)
@@ -143,6 +178,7 @@ export default function LinkInventoryView() {
     if (!confirm(`Are you sure you want to delete all ${unusedCount} unused links?`)) return;
     try {
       await deleteAll(productId).unwrap();
+      setSelectedIds([]);
       refetch();
     } catch (err: any) {
       setError(err?.data?.message || "Failed to delete unused links");
@@ -263,7 +299,7 @@ export default function LinkInventoryView() {
                 transition: "all 0.18s",
               }}
             >
-              <Trash2 size={14} /> Clear Unused
+              <Trash2 size={14} /> Clear All Unused
             </button>
           )}
 
@@ -276,6 +312,85 @@ export default function LinkInventoryView() {
           </button>
         </div>
       </div>
+
+      {/* ── Multi-Select Batch Action Toolbar ── */}
+      {unusedCount > 0 && (
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 18px",
+          borderRadius: 16,
+          background: selectedIds.length > 0 ? "rgba(90,95,239,0.08)" : "var(--card)",
+          border: selectedIds.length > 0 ? "1.5px solid var(--primary)" : "1.5px solid var(--card-border)",
+          boxShadow: "var(--shadow-xs)",
+          gap: 12,
+          transition: "all 0.2s ease",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={selectAllUnused}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 800,
+                color: "var(--foreground)",
+                padding: 0,
+                fontFamily: "inherit",
+              }}
+            >
+              {selectedIds.length === unusedCount ? (
+                <CheckSquare size={18} style={{ color: "var(--primary)" }} />
+              ) : (
+                <Square size={18} style={{ color: "var(--muted)" }} />
+              )}
+              <span>
+                {selectedIds.length === unusedCount
+                  ? "Deselect All"
+                  : `Select All Available (${unusedCount})`}
+              </span>
+            </button>
+
+            {selectedIds.length > 0 && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)" }}>
+                • {selectedIds.length} item(s) selected
+              </span>
+            )}
+          </div>
+
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={deletingSelected}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 16px",
+                borderRadius: 12,
+                background: "#ef4444",
+                color: "#ffffff",
+                border: "none",
+                fontSize: 12.5,
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(239,68,68,0.3)",
+                fontFamily: "inherit",
+                transition: "all 0.18s",
+              }}
+            >
+              {deletingSelected ? <span className="spinner" /> : <Trash2 size={14} />}
+              Delete Selected ({selectedIds.length})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Success / Error Banners ── */}
       {success && (
@@ -463,97 +578,100 @@ export default function LinkInventoryView() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {links.map((link: any, idx: number) => (
-            <div
-              key={link.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 18px",
-                borderRadius: 14,
-                background: "var(--card)",
-                border: "1.5px solid var(--card-border)",
-                boxShadow: "var(--shadow-xs)",
-                opacity: link.isUsed ? 0.6 : 1,
-                gap: 12,
-                transition: "all 0.18s",
-              }}
-              className="stat-card-hover"
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
-                <span style={{
-                  fontSize: 12,
-                  fontFamily: "var(--font-mono)",
-                  fontWeight: 800,
-                  color: "var(--muted)",
-                  width: 36,
-                  flexShrink: 0,
-                }}>
-                  #{idx + 1}
-                </span>
-
-                <span style={{
-                  fontSize: 12.5,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--foreground)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  fontWeight: 600,
-                }}>
-                  {link.url}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                <span style={{
-                  display: "inline-flex",
+          {links.map((link: any, idx: number) => {
+            const isSelected = selectedIds.includes(link.id);
+            return (
+              <div
+                key={link.id}
+                onClick={() => toggleSelect(link.id, link.isUsed)}
+                style={{
+                  display: "flex",
                   alignItems: "center",
-                  padding: "3px 9px",
-                  borderRadius: 999,
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  background: link.isUsed ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
-                  color: link.isUsed ? "#ef4444" : "#059669",
-                  border: link.isUsed ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(16,185,129,0.2)",
-                }}>
-                  {link.isUsed ? "Used" : "Available"}
-                </span>
-
-                <button
-                  onClick={() => copyUrl(link.id, link.url)}
-                  style={{
-                    background: "var(--muted-bg)",
-                    border: "1px solid var(--card-border)",
-                    borderRadius: 9,
-                    width: 32,
-                    height: 32,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: "var(--muted)",
-                    transition: "all 0.18s",
-                  }}
-                  title="Copy URL to Clipboard"
-                >
-                  {copiedId === link.id ? (
-                    <Check size={14} style={{ color: "#10b981" }} />
+                  justifyContent: "space-between",
+                  padding: "12px 18px",
+                  borderRadius: 14,
+                  background: isSelected ? "rgba(90,95,239,0.06)" : "var(--card)",
+                  border: isSelected ? "1.5px solid var(--primary)" : "1.5px solid var(--card-border)",
+                  boxShadow: "var(--shadow-xs)",
+                  opacity: link.isUsed ? 0.6 : 1,
+                  gap: 12,
+                  transition: "all 0.18s",
+                  cursor: link.isUsed ? "default" : "pointer",
+                }}
+                className="stat-card-hover"
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+                  {/* Select Checkbox */}
+                  {!link.isUsed ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(link.id, link.isUsed);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        color: isSelected ? "var(--primary)" : "var(--muted)",
+                      }}
+                    >
+                      {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                    </button>
                   ) : (
-                    <Copy size={14} />
+                    <div style={{ width: 18 }} />
                   )}
-                </button>
 
-                {!link.isUsed && (
-                  <button
-                    onClick={async () => {
-                      await deleteLink(link.id);
-                      refetch();
-                    }}
+                  <span style={{
+                    fontSize: 12,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 800,
+                    color: "var(--muted)",
+                    width: 36,
+                    flexShrink: 0,
+                  }}>
+                    #{idx + 1}
+                  </span>
+
+                  <span style={{
+                    fontSize: 12.5,
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--foreground)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontWeight: 600,
+                  }}>
+                    {link.url}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                  <span style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "3px 9px",
+                    borderRadius: 999,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    background: link.isUsed ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)",
+                    color: link.isUsed ? "#ef4444" : "#059669",
+                    border: link.isUsed ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(16,185,129,0.2)",
+                  }}>
+                    {link.isUsed ? "Used" : "Available"}
+                  </span>
+
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     style={{
-                      background: "rgba(239,68,68,0.08)",
-                      border: "1px solid rgba(239,68,68,0.2)",
+                      background: "rgba(90,95,239,0.08)",
+                      border: "1px solid rgba(90,95,239,0.2)",
                       borderRadius: 9,
                       width: 32,
                       height: 32,
@@ -561,17 +679,72 @@ export default function LinkInventoryView() {
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
-                      color: "#ef4444",
+                      color: "var(--primary)",
+                      transition: "all 0.18s",
+                      textDecoration: "none",
+                    }}
+                    title="Open link in new tab"
+                  >
+                    <ExternalLink size={14} />
+                  </a>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyUrl(link.id, link.url);
+                    }}
+
+                    style={{
+                      background: "var(--muted-bg)",
+                      border: "1px solid var(--card-border)",
+                      borderRadius: 9,
+                      width: 32,
+                      height: 32,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      color: "var(--muted)",
                       transition: "all 0.18s",
                     }}
-                    title="Delete link"
+                    title="Copy URL to Clipboard"
                   >
-                    <Trash2 size={14} />
+                    {copiedId === link.id ? (
+                      <Check size={14} style={{ color: "#10b981" }} />
+                    ) : (
+                      <Copy size={14} />
+                    )}
                   </button>
-                )}
+
+                  {!link.isUsed && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await deleteLink(link.id);
+                        refetch();
+                      }}
+                      style={{
+                        background: "rgba(239,68,68,0.08)",
+                        border: "1px solid rgba(239,68,68,0.2)",
+                        borderRadius: 9,
+                        width: 32,
+                        height: 32,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        color: "#ef4444",
+                        transition: "all 0.18s",
+                      }}
+                      title="Delete link"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -18,6 +18,10 @@ export const linkApi = baseApi.injectEndpoints({
       query: (productId) => ({ url: `/links/clear?productId=${productId}`, method: "DELETE" }),
       invalidatesTags: ["Link", "Product"],
     }),
+    deleteSelectedLinks: builder.mutation<any, string[]>({
+      query: (ids) => ({ url: "/links/delete-many", method: "POST", body: { ids } }),
+      invalidatesTags: ["Link", "Product"],
+    }),
   }),
 });
 
@@ -26,4 +30,6 @@ export const {
   useBulkAddLinksMutation,
   useDeleteLinkMutation,
   useDeleteAllUnusedLinksMutation,
+  useDeleteSelectedLinksMutation,
 } = linkApi;
+
