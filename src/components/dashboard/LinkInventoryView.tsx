@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
-  Upload,
+  FileCode,
 } from "lucide-react";
 import {
   useGetLinksByProductQuery,
@@ -54,14 +54,55 @@ export default function LinkInventoryView() {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        // Split by newlines or carriage returns, clean each line
-        const parsedUrls = content
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter((line) => line.length > 0);
+        let parsedUrls: string[] = [];
+
+        // Check if file is JSON or content is formatted as JSON
+        if (file.name.endsWith(".json") || content.trim().startsWith("[") || content.trim().startsWith("{")) {
+          try {
+            const json = JSON.parse(content);
+            if (Array.isArray(json)) {
+              parsedUrls = json
+                .map((item: any) => {
+                  if (typeof item === "string") return item.trim();
+                  if (typeof item === "object" && item !== null) {
+                    return (item.url || item.link || item.code || item.offer || Object.values(item)[0] || "")
+                      .toString()
+                      .trim();
+                  }
+                  return "";
+                })
+                .filter((u: string) => u.length > 0);
+            } else if (typeof json === "object" && json !== null) {
+              const list = json.links || json.urls || json.data || json.items || Object.values(json).find(Array.isArray);
+              if (Array.isArray(list)) {
+                parsedUrls = list
+                  .map((item: any) => {
+                    if (typeof item === "string") return item.trim();
+                    if (typeof item === "object" && item !== null) {
+                      return (item.url || item.link || item.code || item.offer || Object.values(item)[0] || "")
+                        .toString()
+                        .trim();
+                    }
+                    return "";
+                  })
+                  .filter((u: string) => u.length > 0);
+              }
+            }
+          } catch (jsonErr) {
+            console.warn("JSON parsing failed, falling back to line parsing", jsonErr);
+          }
+        }
+
+        // Fallback to line-by-line text parsing if JSON didn't yield links
+        if (parsedUrls.length === 0) {
+          parsedUrls = content
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0);
+        }
 
         if (parsedUrls.length === 0) {
-          setError("No links found in the uploaded file.");
+          setError("No valid links found in the uploaded file.");
           return;
         }
 
@@ -305,7 +346,7 @@ export default function LinkInventoryView() {
                   Bulk Import Inventory URLs
                 </h3>
                 <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>
-                  Upload a `.txt` file or paste offer links ending with `==`. One link per line.
+                  Upload a `.json` / `.txt` file or paste offer links below.
                 </p>
               </div>
             </div>
@@ -314,7 +355,7 @@ export default function LinkInventoryView() {
             <div style={{ position: "relative" }}>
               <input
                 type="file"
-                accept=".txt,.csv,text/plain"
+                accept=".json,.txt,.csv,text/plain,application/json"
                 onChange={handleFileUpload}
                 style={{
                   position: "absolute",
@@ -342,8 +383,8 @@ export default function LinkInventoryView() {
                   fontFamily: "inherit",
                 }}
               >
-                <FileText size={14} />
-                <span>Choose .txt File</span>
+                <FileCode size={14} />
+                <span>Choose .json / .txt File</span>
               </button>
             </div>
           </div>
@@ -414,7 +455,7 @@ export default function LinkInventoryView() {
             No links added yet
           </h3>
           <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-            Click &quot;Bulk Add Links&quot; above or upload a `.txt` file containing your offer links.
+            Click &quot;Bulk Add Links&quot; above or upload a `.json` / `.txt` file containing your offer links.
           </p>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
             <Plus size={14} /> Bulk Add Links
