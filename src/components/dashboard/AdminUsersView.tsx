@@ -1,61 +1,222 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React from "react";
-import { Users, Mail, UserCheck } from "lucide-react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Users, Mail, UserCheck, Search, MessageSquare, ExternalLink, ShieldCheck, Calendar } from "lucide-react";
 import { useGetAdminConversationsQuery } from "@/redux/features/chatApi";
+import { ROUTES } from "@/constants/routes";
 
 export default function AdminUsersView() {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
   const { data: convData, isLoading } = useGetAdminConversationsQuery(undefined);
   const conversations = convData?.data || [];
 
+  const filteredConversations = conversations.filter(
+    (item: any) =>
+      item.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.customer?.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="max-w-6xl space-y-6">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <Users className="text-indigo-600" size={24} />
-          Customer & User Accounts
-        </h2>
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-          Registered buyers and active customer chat profiles
-        </p>
+    <div style={{ maxWidth: 1140, display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── Page Header ── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 6px 16px rgba(59,130,246,0.3)",
+              color: "white",
+            }}>
+              <Users size={20} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, color: "var(--foreground)", letterSpacing: "-0.03em" }}>
+              Customer & User Accounts
+            </h2>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+            Registered buyers and active customer chat profiles ({conversations.length} total)
+          </p>
+        </div>
       </div>
 
+      {/* ── Filter & Search Bar ── */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "8px 12px",
+        background: "var(--card)",
+        border: "1.5px solid var(--card-border)",
+        borderRadius: 18,
+        boxShadow: "var(--shadow-xs)",
+      }}>
+        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center" }}>
+          <Search size={16} style={{ position: "absolute", left: 14, color: "var(--muted-light)" }} />
+          <input
+            type="text"
+            placeholder="Search customers by name or email address..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 14px 10px 40px",
+              background: "var(--muted-bg)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 14,
+              fontSize: 13,
+              color: "var(--foreground)",
+              outline: "none",
+              fontFamily: "inherit",
+              transition: "border-color 0.2s",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── Customer Accounts Grid ── */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton" style={{ height: 110, borderRadius: 20 }} />
           ))}
         </div>
-      ) : conversations.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center text-slate-400">
-          <Users size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No active customer accounts</p>
-          <p className="text-xs text-slate-400 mt-1">Registered customer records will appear here as orders and chats are placed.</p>
+      ) : filteredConversations.length === 0 ? (
+        <div className="card" style={{ padding: "56px 24px", textAlign: "center" }}>
+          <Users size={46} style={{ color: "var(--muted-light)", margin: "0 auto 14px" }} />
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", marginBottom: 4 }}>
+            No customer accounts found
+          </h3>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>
+            Registered customer records will appear here as orders and chat sessions are initiated.
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {conversations.map((item: any) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+          {filteredConversations.map((item: any) => (
             <div
               key={item.customer.id}
-              className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 14,
+                padding: "18px 20px",
+                background: "var(--card)",
+                border: "1.5px solid var(--card-border)",
+                borderRadius: 20,
+                boxShadow: "var(--shadow-xs)",
+                transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+              className="stat-card-hover"
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 font-extrabold text-base border border-indigo-100 dark:border-indigo-900/50">
-                {item.customer.name[0]?.toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {item.customer.name}
-                  </h3>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
-                    <UserCheck size={10} /> Customer
-                  </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
+                {/* Avatar */}
+                <div style={{
+                  position: "relative",
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, #5a5fef, #7c3aed)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: 18,
+                  fontWeight: 800,
+                  flexShrink: 0,
+                  boxShadow: "0 6px 16px rgba(90,95,239,0.3)",
+                }}>
+                  {item.customer.name?.[0]?.toUpperCase() || "U"}
+                  <span style={{
+                    position: "absolute",
+                    bottom: -2,
+                    right: -2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: "#10b981",
+                    border: "2px solid var(--card)",
+                  }} />
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center gap-1">
-                  <Mail size={12} className="text-slate-400 shrink-0" />
-                  {item.customer.email}
-                </p>
+
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                    <h3 style={{
+                      fontSize: 14.5,
+                      fontWeight: 800,
+                      color: "var(--foreground)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      margin: 0,
+                      letterSpacing: "-0.01em",
+                    }}>
+                      {item.customer.name}
+                    </h3>
+
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      background: "rgba(16,185,129,0.1)",
+                      color: "#059669",
+                      border: "1px solid rgba(16,185,129,0.2)",
+                    }}>
+                      <UserCheck size={10} /> Active Buyer
+                    </span>
+                  </div>
+
+                  <p style={{
+                    fontSize: 12,
+                    color: "var(--muted)",
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}>
+                    <Mail size={12} style={{ color: "var(--muted-light)", flexShrink: 0 }} />
+                    {item.customer.email}
+                  </p>
+                </div>
               </div>
+
+              {/* Chat Button */}
+              <button
+                onClick={() => router.push(ROUTES.DASHBOARD.CHAT)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 38,
+                  height: 38,
+                  borderRadius: 12,
+                  background: "rgba(90,95,239,0.08)",
+                  color: "var(--primary)",
+                  border: "1px solid rgba(90,95,239,0.18)",
+                  cursor: "pointer",
+                  transition: "all 0.18s",
+                  flexShrink: 0,
+                }}
+                title="Open Live Chat with Customer"
+              >
+                <MessageSquare size={16} />
+              </button>
             </div>
           ))}
         </div>
