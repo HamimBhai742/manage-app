@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Send, User, Search, Clock, Sparkles } from "lucide-react";
+import { MessageSquare, Send, Search, Sparkles, User, CheckCheck, Circle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import {
@@ -72,47 +73,100 @@ export default function AdminChatView() {
     setMessageText("");
   };
 
-  const filteredConversations = conversations.filter((c: any) =>
-    c.customer.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.customer.email.toLowerCase().includes(search.toLowerCase())
+  const filteredConversations = conversations.filter(
+    (c: any) =>
+      c.customer.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.customer.email.toLowerCase().includes(search.toLowerCase())
   );
 
   const activeCustomer = conversations.find((c: any) => c.customer.id === selectedCustomerId)?.customer;
 
   return (
-    <div className="max-w-6xl space-y-4 h-[calc(100vh-140px)] flex flex-col">
-      <div className="shrink-0">
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <MessageSquare className="text-indigo-600" size={24} />
-          Live Customer Support
-        </h2>
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-          Real-time messaging with store buyers and visitors
-        </p>
+    <div style={{ maxWidth: 1140, display: "flex", flexDirection: "column", gap: 20, height: "calc(100vh - 140px)" }}>
+      {/* ── Page Header ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: 12,
+          background: "linear-gradient(135deg, #ec4899, #8b5cf6)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 6px 16px rgba(236,72,153,0.3)",
+          color: "white",
+        }}>
+          <MessageSquare size={20} />
+        </div>
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 900, color: "var(--foreground)", letterSpacing: "-0.03em", margin: 0 }}>
+            Live Support Desk
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0" }}>
+            Real-time chat messaging with buyers and visitors
+          </p>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex overflow-hidden">
-        {/* Left Column: Customer Conversations */}
-        <div className="w-80 border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col shrink-0">
-          <div className="p-3.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
-            <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* ── Main Chat Shell ── */}
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        borderRadius: 22,
+        background: "var(--card)",
+        border: "1.5px solid var(--card-border)",
+        boxShadow: "var(--shadow-sm)",
+        display: "flex",
+        overflow: "hidden",
+      }}>
+        {/* ── Left Sidebar: Conversations ── */}
+        <div style={{
+          width: 300,
+          borderRight: "1px solid var(--card-border)",
+          display: "flex",
+          flexDirection: "column",
+          flexShrink: 0,
+          background: "var(--sidebar-bg)",
+        }}>
+          {/* Search Header */}
+          <div style={{
+            padding: "14px 16px",
+            borderBottom: "1px solid var(--card-border)",
+            background: "rgba(var(--muted-bg), 0.3)",
+          }}>
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <Search size={15} style={{ position: "absolute", left: 12, color: "var(--muted-light)" }} />
               <input
                 type="text"
                 placeholder="Search customers..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white rounded-xl pl-9 pr-3.5 py-2 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-indigo-500"
+                style={{
+                  width: "100%",
+                  padding: "8px 12px 8px 36px",
+                  background: "var(--card)",
+                  border: "1.5px solid var(--card-border)",
+                  borderRadius: 12,
+                  fontSize: 12.5,
+                  color: "var(--foreground)",
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+          {/* Conversations List */}
+          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
             {filteredConversations.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 px-4">
-                <MessageSquare size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No active chats</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">When customers message you, they appear here.</p>
+              <div style={{ padding: "48px 16px", textAlign: "center", color: "var(--muted)" }}>
+                <MessageSquare size={36} style={{ margin: "0 auto 10px", opacity: 0.5 }} />
+                <p style={{ fontSize: 13, fontWeight: 800, color: "var(--foreground)", marginBottom: 2 }}>
+                  No active chats
+                </p>
+                <p style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                  Customer messages will appear here in real-time.
+                </p>
               </div>
             ) : (
               filteredConversations.map((item: any) => {
@@ -120,31 +174,87 @@ export default function AdminChatView() {
                 return (
                   <div
                     key={item.customer.id}
-                    onClick={() => { setSelectedCustomerId(item.customer.id); refetchMessages(); }}
-                    className={`p-3.5 cursor-pointer transition-all ${
-                      isSelected
-                        ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-l-4 border-l-indigo-600"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/40 border-l-4 border-l-transparent"
-                    }`}
+                    onClick={() => {
+                      setSelectedCustomerId(item.customer.id);
+                      refetchMessages();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      cursor: "pointer",
+                      background: isSelected ? "rgba(90,95,239,0.08)" : "transparent",
+                      borderLeft: isSelected ? "3.5px solid var(--primary)" : "3.5px solid transparent",
+                      borderBottom: "1px solid var(--card-border)",
+                      transition: "all 0.18s ease",
+                    }}
+                    className={!isSelected ? "hover-nav-item" : ""}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {item.customer.name}
-                      </span>
-                      <span className="text-[10px] text-slate-400 shrink-0">
-                        {new Date(item.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
+                    {/* Customer Avatar */}
+                    <div style={{
+                      position: "relative",
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #5a5fef, #7c3aed)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      flexShrink: 0,
+                      boxShadow: "0 4px 10px rgba(90,95,239,0.25)",
+                    }}>
+                      {item.customer.name?.[0]?.toUpperCase() || "C"}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[190px]">
-                        {item.lastMessage}
-                      </p>
-                      {item.unreadCount > 0 && (
-                        <span className="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0">
-                          {item.unreadCount}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+                        <p style={{
+                          fontSize: 13,
+                          fontWeight: isSelected ? 800 : 700,
+                          color: "var(--foreground)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          margin: 0,
+                        }}>
+                          {item.customer.name}
+                        </p>
+                        <span style={{ fontSize: 10.5, color: "var(--muted)", flexShrink: 0 }}>
+                          {item.lastMessageAt
+                            ? new Date(item.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                            : ""}
                         </span>
-                      )}
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        <p style={{
+                          fontSize: 11.5,
+                          color: isSelected ? "var(--foreground)" : "var(--muted)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          margin: 0,
+                        }}>
+                          {item.lastMessage || "Started a chat"}
+                        </p>
+                        {item.unreadCount > 0 && (
+                          <span style={{
+                            background: "#ef4444",
+                            color: "white",
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: "2px 7px",
+                            borderRadius: 999,
+                            flexShrink: 0,
+                          }}>
+                            {item.unreadCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -153,43 +263,134 @@ export default function AdminChatView() {
           </div>
         </div>
 
-        {/* Right Column: Chat Viewport */}
-        <div className="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/20">
+        {/* ── Right Viewport: Active Chat ── */}
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          background: "var(--background)",
+        }}>
           {selectedCustomerId && activeCustomer ? (
             <>
-              {/* Active Header */}
-              <div className="px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm shadow-indigo-600/30">
-                    {activeCustomer.name[0]?.toUpperCase()}
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+              {/* Active Conversation Header */}
+              <div style={{
+                height: 64,
+                padding: "0 20px",
+                borderBottom: "1px solid var(--card-border)",
+                background: "var(--card)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexShrink: 0,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    position: "relative",
+                    width: 38,
+                    height: 38,
+                    borderRadius: 11,
+                    background: "linear-gradient(135deg, #5a5fef, #7c3aed)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontWeight: 800,
+                    fontSize: 15,
+                    boxShadow: "0 4px 12px rgba(90,95,239,0.3)",
+                  }}>
+                    {activeCustomer.name?.[0]?.toUpperCase() || "C"}
+                    <span style={{
+                      position: "absolute",
+                      bottom: -1,
+                      right: -1,
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      background: "#10b981",
+                      border: "2px solid var(--card)",
+                    }} />
                   </div>
+
                   <div>
-                    <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">{activeCustomer.name}</h4>
-                    <p className="text-[11px] text-slate-400">{activeCustomer.email}</p>
+                    <h4 style={{ fontSize: 14, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>
+                      {activeCustomer.name}
+                    </h4>
+                    <p style={{ fontSize: 11.5, color: "var(--muted)", margin: 0 }}>
+                      {activeCustomer.email}
+                    </p>
                   </div>
+                </div>
+
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "rgba(16,185,129,0.1)",
+                  color: "#059669",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  border: "1px solid rgba(16,185,129,0.2)",
+                }}>
+                  <Circle size={8} fill="#10b981" color="#10b981" />
+                  Live Connected
                 </div>
               </div>
 
               {/* Messages Viewport */}
-              <div className="flex-1 p-5 overflow-y-auto space-y-3">
+              <div style={{
+                flex: 1,
+                padding: "20px 24px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}>
+                <div style={{ textAlign: "center", margin: "4px 0 10px" }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: "var(--muted-bg)",
+                    color: "var(--muted)",
+                    padding: "4px 14px",
+                    borderRadius: 999,
+                    border: "1px solid var(--card-border)",
+                  }}>
+                    Beginning of support chat session
+                  </span>
+                </div>
+
                 {messages.map((msg, idx) => {
                   const isMine = msg.senderId === user?.id;
                   return (
                     <div
                       key={idx}
-                      className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
+                      style={{
+                        alignSelf: isMine ? "flex-end" : "flex-start",
+                        maxWidth: "75%",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isMine ? "flex-end" : "flex-start",
+                      }}
                     >
                       <div
-                        className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                          isMine
-                            ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-br-none shadow-md shadow-indigo-600/20"
-                            : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-none border border-slate-200/80 dark:border-slate-700/60 shadow-xs"
-                        }`}
+                        style={{
+                          padding: "11px 16px",
+                          borderRadius: isMine ? "18px 18px 3px 18px" : "18px 18px 18px 3px",
+                          background: isMine ? "var(--primary-gradient)" : "var(--card)",
+                          color: isMine ? "#ffffff" : "var(--foreground)",
+                          fontSize: 13.5,
+                          lineHeight: 1.5,
+                          border: isMine ? "none" : "1.5px solid var(--card-border)",
+                          boxShadow: isMine ? "var(--shadow-primary)" : "var(--shadow-xs)",
+                          letterSpacing: "-0.01em",
+                        }}
                       >
                         {msg.message}
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 px-1">
+                      <span style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 4, padding: "0 4px", fontWeight: 600 }}>
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
@@ -198,39 +399,74 @@ export default function AdminChatView() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Chat Input Toolbar */}
-              <div className="p-3.5 border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900">
+              {/* Bottom Toolbar Input */}
+              <div style={{
+                padding: "14px 18px",
+                background: "var(--card)",
+                borderTop: "1px solid var(--card-border)",
+                flexShrink: 0,
+              }}>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     handleSend();
                   }}
-                  className="flex items-center gap-2"
+                  style={{ display: "flex", gap: 10, alignItems: "center" }}
                 >
                   <input
                     type="text"
-                    placeholder="Type a message to customer..."
+                    className="input"
+                    style={{ height: 44, borderRadius: 14, fontSize: 13.5 }}
+                    placeholder={`Reply to ${activeCustomer.name}...`}
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
-                    className="flex-1 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-900 dark:text-white rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-indigo-500"
                   />
                   <button
                     type="submit"
+                    className="btn btn-primary"
                     disabled={!messageText.trim()}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-indigo-600/25 transition-all"
+                    style={{
+                      height: 44,
+                      padding: "0 22px",
+                      borderRadius: 14,
+                      flexShrink: 0,
+                    }}
                   >
-                    <Send size={15} />
+                    <Send size={16} />
                     Send
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <MessageSquare size={48} className="mb-3 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Select a customer to view conversation</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Pick a buyer from the left list to respond to support inquiries.
+            <div style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 32,
+              textAlign: "center",
+            }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                borderRadius: 20,
+                background: "rgba(90,95,239,0.08)",
+                border: "1px solid rgba(90,95,239,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--primary)",
+                marginBottom: 16,
+              }}>
+                <MessageSquare size={30} />
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: "var(--foreground)", marginBottom: 6 }}>
+                Select a Customer Conversation
+              </h3>
+              <p style={{ fontSize: 13, color: "var(--muted)", maxWidth: 320, lineHeight: 1.5 }}>
+                Pick a buyer from the left list to view chat trajectory and reply to support inquiries.
               </p>
             </div>
           )}
@@ -239,4 +475,3 @@ export default function AdminChatView() {
     </div>
   );
 }
-
