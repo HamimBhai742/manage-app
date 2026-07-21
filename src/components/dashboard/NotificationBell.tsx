@@ -14,7 +14,6 @@ export default function NotificationBell() {
   const router = useRouter();
   const { socket, requestNotificationPermission } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const { data, refetch } = useGetNotificationsQuery(undefined);
   const [markAsRead] = useMarkAsReadMutation();
@@ -51,35 +50,29 @@ export default function NotificationBell() {
   };
 
   const getIcon = (type: string) => {
-    if (type === "NEW_ORDER") return <ShoppingBag size={15} style={{ color: "#6366f1" }} />;
-    if (type === "CHAT_MESSAGE") return <MessageSquare size={15} style={{ color: "#ec4899" }} />;
-    return <Info size={15} style={{ color: "#f59e0b" }} />;
+    if (type === "NEW_ORDER") return <ShoppingBag size={15} className="text-indigo-600 dark:text-indigo-400" />;
+    if (type === "CHAT_MESSAGE") return <MessageSquare size={15} className="text-pink-600 dark:text-pink-400" />;
+    return <Info size={15} className="text-amber-500" />;
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       {/* Bell Button */}
       <button
         onClick={() => {
           setIsOpen(!isOpen);
           requestNotificationPermission();
         }}
-        style={{
-          position: "relative", padding: 10, borderRadius: 12,
-          background: isOpen ? "var(--muted-bg)" : "transparent",
-          border: "none", cursor: "pointer", color: "var(--foreground)",
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}
+        className={`relative p-2.5 rounded-xl border transition-all ${
+          isOpen
+            ? "bg-slate-100 dark:bg-slate-800 border-indigo-500 text-indigo-600 dark:text-indigo-400"
+            : "border-slate-200/80 dark:border-slate-800 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+        }`}
+        aria-label="Notifications"
       >
-        <Bell size={20} />
+        <Bell size={19} />
         {unreadCount > 0 && (
-          <span style={{
-            position: "absolute", top: 6, right: 6,
-            background: "#ef4444", color: "white", fontSize: 10,
-            fontWeight: 800, minWidth: 16, height: 16, borderRadius: 999,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "0 4px", border: "2px solid var(--card)"
-          }}>
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -87,111 +80,87 @@ export default function NotificationBell() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div style={{
-          position: "absolute", top: 48, right: 0, width: 340,
-          background: "var(--card)", border: "1px solid var(--card-border)",
-          borderRadius: 20, boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-          zIndex: 200, overflow: "hidden"
-        }}>
-          {/* Header */}
-          <div style={{
-            padding: "12px 16px", borderBottom: "1px solid var(--card-border)",
-            display: "flex", alignItems: "center", justifyContent: "space-between"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <h4 style={{ fontWeight: 800, fontSize: 14 }}>Notifications</h4>
-              {unreadCount > 0 && (
-                <span style={{
-                  background: "#6366f120", color: "#6366f1",
-                  fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999
-                }}>
-                  {unreadCount} new
-                </span>
-              )}
-            </div>
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-12 z-40 w-80 sm:w-96 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xl overflow-hidden animate-fadeIn">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">Notifications</h4>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 text-[10px] font-extrabold">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {unreadCount > 0 && (
                 <button
                   onClick={async () => { await markAllAsRead(); refetch(); }}
-                  style={{
-                    background: "none", border: "none", cursor: "pointer",
-                    fontSize: 11, fontWeight: 600, color: "var(--primary)",
-                    display: "flex", alignItems: "center", gap: 3
-                  }}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"
                 >
-                  <Check size={12} /> Mark all read
+                  <Check size={13} /> Mark all read
                 </button>
               )}
             </div>
-          </div>
 
-          {/* List */}
-          <div style={{ maxHeight: 360, overflowY: "auto" }}>
-            {notifications.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "32px 16px", color: "var(--muted)" }}>
-                <Bell size={28} style={{ margin: "0 auto 8px" }} />
-                <p style={{ fontSize: 13 }}>No notifications yet</p>
-              </div>
-            ) : (
-              notifications.map((notif: any) => (
-                <div
-                  key={notif.id}
-                  onClick={() => handleNotificationClick(notif)}
-                  style={{
-                    padding: "12px 16px", borderBottom: "1px solid var(--card-border)",
-                    cursor: "pointer", background: notif.isRead ? "transparent" : "rgba(99, 102, 241, 0.05)",
-                    transition: "background 0.15s"
-                  }}
-                  className="hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <div style={{
-                      padding: 8, borderRadius: 10, background: "var(--muted-bg)", flexShrink: 0, marginTop: 2
-                    }}>
-                      {getIcon(notif.type)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: notif.isRead ? 600 : 800, color: "var(--foreground)" }}>
-                        {notif.title}
-                      </p>
-                      <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.4, marginTop: 2 }}>
-                        {notif.message}
-                      </p>
-                      <span style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, display: "block" }}>
-                        {new Date(notif.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
-                    {!notif.isRead && (
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", marginTop: 6, flexShrink: 0 }} />
-                    )}
-                  </div>
+            {/* List */}
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+              {notifications.length === 0 ? (
+                <div className="py-10 text-center text-slate-400 px-4">
+                  <Bell size={32} className="mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No notifications yet</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Real-time alerts will show up here.</p>
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                notifications.map((notif: any) => (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-3.5 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                      notif.isRead ? "bg-white dark:bg-slate-900" : "bg-indigo-50/40 dark:bg-indigo-950/20"
+                    }`}
+                  >
+                    <div className="flex gap-3 items-start">
+                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 mt-0.5">
+                        {getIcon(notif.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs ${notif.isRead ? "font-semibold text-slate-800 dark:text-slate-200" : "font-black text-slate-900 dark:text-white"}`}>
+                          {notif.title}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 line-clamp-2">
+                          {notif.message}
+                        </p>
+                        <span className="text-[10px] text-slate-400 mt-1.5 block font-mono">
+                          {new Date(notif.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      {!notif.isRead && (
+                        <span className="h-2 w-2 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-          {/* Footer Browser Push Banner */}
-          <div style={{
-            padding: "10px 16px", background: "var(--muted-bg)",
-            borderTop: "1px solid var(--card-border)", display: "flex",
-            alignItems: "center", justifyContent: "space-between"
-          }}>
-            <span style={{ fontSize: 11, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}>
-              <ShieldCheck size={13} /> Enable Push Alerts
-            </span>
-            <button
-              onClick={requestNotificationPermission}
-              style={{
-                fontSize: 11, fontWeight: 700, color: "var(--primary)",
-                background: "none", border: "none", cursor: "pointer"
-              }}
-            >
-              Enable
-            </button>
+            {/* Footer Browser Push Banner */}
+            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-500" /> Desktop Notifications
+              </span>
+              <button
+                onClick={requestNotificationPermission}
+                className="text-[11px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                Enable
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
+

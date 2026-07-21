@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, Clock, X } from "lucide-react";
+import { CheckCircle, XCircle, Clock, X, Copy, Check, ShoppingBag, Calendar, User, Hash, DollarSign } from "lucide-react";
 import {
   useGetAllOrdersQuery,
   useApproveOrderMutation,
@@ -9,16 +9,16 @@ import {
 } from "@/redux/features/orderApi";
 
 const statusTabs = [
-  { label: "All", value: "" },
+  { label: "All Orders", value: "" },
   { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
   { label: "Rejected", value: "REJECTED" },
 ];
 
 const statusConfig: any = {
-  PENDING: { label: "Pending", icon: Clock, color: "#f59e0b", bg: "#fef9c3" },
-  APPROVED: { label: "Approved", icon: CheckCircle, color: "#10b981", bg: "#d1fae5" },
-  REJECTED: { label: "Rejected", icon: XCircle, color: "#ef4444", bg: "#fee2e2" },
+  PENDING: { label: "Pending", icon: Clock, color: "#f59e0b", bgClass: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border-amber-200 dark:border-amber-900/50" },
+  APPROVED: { label: "Approved", icon: CheckCircle, color: "#10b981", bgClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50" },
+  REJECTED: { label: "Rejected", icon: XCircle, color: "#ef4444", bgClass: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border-rose-200 dark:border-rose-900/50" },
 };
 
 export default function AdminOrdersView() {
@@ -26,6 +26,7 @@ export default function AdminOrdersView() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [copiedTxn, setCopiedTxn] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useGetAllOrdersQuery(statusFilter || undefined);
   const [approveOrder, { isLoading: approving }] = useApproveOrderMutation();
@@ -47,133 +48,169 @@ export default function AdminOrdersView() {
     refetch();
   };
 
+  const copyTxn = (id: string, txn: string) => {
+    navigator.clipboard.writeText(txn);
+    setCopiedTxn(id);
+    setTimeout(() => setCopiedTxn(null), 2000);
+  };
+
   return (
-    <div style={{ maxWidth: 1000 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800 }}>📋 Order Management</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 2 }}>
-          Review and approve customer orders
-        </p>
+    <div className="max-w-6xl flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <ShoppingBag className="text-indigo-600" size={24} />
+            Order Management
+          </h2>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+            Review and process customer orders, verify transaction IDs, and issue digital links
+          </p>
+        </div>
       </div>
 
-      {/* Status filter tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-        {statusTabs.map(tab => (
-          <button key={tab.value} onClick={() => setStatusFilter(tab.value)} style={{
-            padding: "7px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600,
-            cursor: "pointer", border: "1.5px solid",
-            borderColor: statusFilter === tab.value ? "var(--primary)" : "var(--card-border)",
-            background: statusFilter === tab.value ? "var(--primary)" : "var(--card)",
-            color: statusFilter === tab.value ? "white" : "var(--muted)",
-            transition: "all 0.15s"
-          }}>
-            {tab.label}
-          </button>
-        ))}
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-800/80 pb-3 overflow-x-auto">
+        {statusTabs.map((tab) => {
+          const isActive = statusFilter === tab.value;
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                isActive
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/80"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Orders list */}
+      {/* Orders List */}
       {isLoading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 16 }} />)}
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+          ))}
         </div>
       ) : orders.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "48px" }}>
-          <p style={{ color: "var(--muted)" }}>No orders found</p>
+        <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-12 text-center text-slate-400">
+          <ShoppingBag size={44} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No orders found</p>
+          <p className="text-xs text-slate-400 mt-1">There are no orders matching the selected status tab.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="space-y-4">
           {orders.map((order: any) => {
-            const sc = statusConfig[order.status];
+            const sc = statusConfig[order.status] || statusConfig.PENDING;
             const Icon = sc.icon;
 
             return (
-              <div key={order.id} className="card" style={{ padding: "16px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-                  <div style={{ flex: 1 }}>
-                    {/* Top row */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted)", background: "var(--muted-bg)", padding: "2px 8px", borderRadius: 6 }}>
+              <div
+                key={order.id}
+                className="group rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-3 flex-1">
+                    {/* Header Row */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
                         #{order.id.slice(-8).toUpperCase()}
                       </span>
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", gap: 4,
-                        background: sc.bg, color: sc.color,
-                        borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700
-                      }}>
-                        <Icon size={11} /> {sc.label}
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${sc.bgClass}`}>
+                        <Icon size={12} /> {sc.label}
                       </span>
-                      <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: "auto" }}>
-                        {new Date(order.createdAt).toLocaleDateString("en-BD", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
+                        <Calendar size={13} />
+                        {new Date(order.createdAt).toLocaleDateString("en-BD", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
 
-                    {/* Details grid */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "6px 20px" }}>
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1 bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60">
                       <div>
-                        <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Customer</p>
-                        <p style={{ fontSize: 13, fontWeight: 600 }}>{order.user?.name}</p>
-                        <p style={{ fontSize: 11, color: "var(--muted)" }}>{order.user?.email}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <User size={10} /> Customer
+                        </p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.user?.name || "Customer"}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{order.user?.email}</p>
                       </div>
+
                       <div>
-                        <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Product</p>
-                        <p style={{ fontSize: 13, fontWeight: 600 }}>{order.product?.title}</p>
-                        <p style={{ fontSize: 11, color: "var(--muted)" }}>Qty: {order.quantity}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.product?.title}</p>
+                        <p className="text-[11px] text-slate-400">Qty: {order.quantity} link(s)</p>
                       </div>
+
                       <div>
-                        <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>Payment</p>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>৳{order.amountPaid?.toLocaleString()}</p>
-                        <p style={{ fontSize: 11, color: "var(--muted)" }}>{order.paymentMethod}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <DollarSign size={10} /> Amount
+                        </p>
+                        <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">৳{order.amountPaid?.toLocaleString()}</p>
+                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{order.paymentMethod}</p>
                       </div>
+
                       <div>
-                        <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>From Number</p>
-                        <p style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 600 }}>{order.senderNumber}</p>
-                        <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "monospace" }}>TXN: {order.transactionId}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                          <Hash size={10} /> Transaction ID
+                        </p>
+                        <p className="text-xs font-mono font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.senderNumber}</p>
+                        <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
+                          <span className="truncate">TXN: {order.transactionId}</span>
+                          <button
+                            onClick={() => copyTxn(order.id, order.transactionId)}
+                            className="p-0.5 text-slate-400 hover:text-indigo-600"
+                            title="Copy TXN ID"
+                          >
+                            {copiedTxn === order.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {/* Pending Action Buttons */}
                   {order.status === "PENDING" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                    <div className="flex sm:flex-col gap-2 shrink-0 self-end sm:self-center">
                       <button
-                        className="btn btn-sm"
-                        style={{ background: "#d1fae5", color: "#065f46", border: "none" }}
                         onClick={() => handleApprove(order.id)}
                         disabled={approving}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all"
                       >
-                        <CheckCircle size={13} />
-                        Approve
+                        <CheckCircle size={14} /> Approve
                       </button>
                       <button
-                        className="btn btn-sm"
-                        style={{ background: "#fee2e2", color: "#991b1b", border: "none" }}
                         onClick={() => { setSelectedOrder(order); setShowRejectModal(true); }}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-xs transition-colors"
                       >
-                        <XCircle size={13} />
-                        Reject
+                        <XCircle size={14} /> Reject
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* Approved links */}
+                {/* Delivered links list */}
                 {order.status === "APPROVED" && order.links?.length > 0 && (
-                  <div style={{
-                    marginTop: 12, background: "#d1fae520",
-                    border: "1px solid #10b98130", borderRadius: 10, padding: "10px 12px"
-                  }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: "#059669", marginBottom: 6 }}>
-                      Links Delivered ({order.links.length})
+                  <div className="rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 p-3">
+                    <p className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
+                      <CheckCircle size={14} /> Delivered Links ({order.links.length})
                     </p>
-                    {order.links.slice(0, 2).map((link: any, idx: number) => (
-                      <p key={link.id} style={{ fontSize: 11, fontFamily: "monospace", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {idx + 1}. {link.url}
-                      </p>
-                    ))}
-                    {order.links.length > 2 && (
-                      <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>+{order.links.length - 2} more</p>
-                    )}
+                    <div className="space-y-1">
+                      {order.links.map((link: any, idx: number) => (
+                        <p key={link.id} className="text-[11px] font-mono text-slate-700 dark:text-slate-300 truncate bg-white/70 dark:bg-slate-900/60 px-2.5 py-1 rounded-md border border-emerald-100 dark:border-emerald-900/30">
+                          {idx + 1}. {link.url}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -182,28 +219,44 @@ export default function AdminOrdersView() {
         </div>
       )}
 
-      {/* Reject Modal */}
+      {/* Reject Modal Sheet */}
       {showRejectModal && (
         <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#ef4444" }}>Reject Order</h3>
-              <button onClick={() => setShowRejectModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)" }}>
-                <X size={20} />
+          <div className="modal-sheet max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
+              <h3 className="text-base font-extrabold text-rose-600 flex items-center gap-2">
+                <XCircle size={18} /> Reject Customer Order
+              </h3>
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X size={18} />
               </button>
             </div>
-            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
-              Provide a reason for rejection (optional). The customer will see this.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Provide a reason for rejection. This note will be recorded in customer&apos;s order details.
             </p>
-            <textarea className="input" rows={3} placeholder="e.g. Transaction not found, amount mismatch..."
-              value={rejectNote} onChange={e => setRejectNote(e.target.value)}
-              style={{ resize: "none", marginBottom: 16, fontFamily: "inherit" }}
+            <textarea
+              className="input min-h-[90px] mb-4"
+              placeholder="e.g. Transaction ID not found in bKash statement or amount mismatch..."
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
             />
-            <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowRejectModal(false)}>Cancel</button>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReject} disabled={rejecting}>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={rejecting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/25 inline-flex items-center justify-center gap-2"
+              >
                 {rejecting && <span className="spinner" />}
-                Reject Order
+                Confirm Reject
               </button>
             </div>
           </div>
@@ -212,3 +265,4 @@ export default function AdminOrdersView() {
     </div>
   );
 }
+
