@@ -1,7 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, Clock, X, Copy, Check, ShoppingBag, Calendar, User, Hash, DollarSign } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  X,
+  Copy,
+  Check,
+  ShoppingBag,
+  Calendar,
+  User,
+  Hash,
+  DollarSign,
+  Phone,
+  PackageCheck,
+  ExternalLink,
+  Filter,
+} from "lucide-react";
 import {
   useGetAllOrdersQuery,
   useApproveOrderMutation,
@@ -15,10 +31,28 @@ const statusTabs = [
   { label: "Rejected", value: "REJECTED" },
 ];
 
-const statusConfig: any = {
-  PENDING: { label: "Pending", icon: Clock, color: "#f59e0b", bgClass: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border-amber-200 dark:border-amber-900/50" },
-  APPROVED: { label: "Approved", icon: CheckCircle, color: "#10b981", bgClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50" },
-  REJECTED: { label: "Rejected", icon: XCircle, color: "#ef4444", bgClass: "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border-rose-200 dark:border-rose-900/50" },
+const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
+  PENDING: {
+    label: "Pending Review",
+    icon: Clock,
+    color: "#d97706",
+    bg: "rgba(245,158,11,0.08)",
+    border: "rgba(245,158,11,0.2)",
+  },
+  APPROVED: {
+    label: "Approved & Delivered",
+    icon: CheckCircle2,
+    color: "#059669",
+    bg: "rgba(16,185,129,0.08)",
+    border: "rgba(16,185,129,0.2)",
+  },
+  REJECTED: {
+    label: "Rejected",
+    icon: XCircle,
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.08)",
+    border: "rgba(239,68,68,0.2)",
+  },
 };
 
 export default function AdminOrdersView() {
@@ -35,17 +69,25 @@ export default function AdminOrdersView() {
   const orders = data?.data || [];
 
   const handleApprove = async (id: string) => {
-    await approveOrder(id);
-    refetch();
+    try {
+      await approveOrder(id).unwrap();
+      refetch();
+    } catch (err: any) {
+      alert(err?.data?.message || "Failed to approve order");
+    }
   };
 
   const handleReject = async () => {
     if (!selectedOrder) return;
-    await rejectOrder({ id: selectedOrder.id, adminNote: rejectNote });
-    setShowRejectModal(false);
-    setRejectNote("");
-    setSelectedOrder(null);
-    refetch();
+    try {
+      await rejectOrder({ id: selectedOrder.id, adminNote: rejectNote }).unwrap();
+      setShowRejectModal(false);
+      setRejectNote("");
+      setSelectedOrder(null);
+      refetch();
+    } catch (err: any) {
+      alert(err?.data?.message || "Failed to reject order");
+    }
   };
 
   const copyTxn = (id: string, txn: string) => {
@@ -55,33 +97,63 @@ export default function AdminOrdersView() {
   };
 
   return (
-    <div className="max-w-6xl flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={{ maxWidth: 1140, display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* ── Page Header ── */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <ShoppingBag className="text-indigo-600" size={24} />
-            Order Management
-          </h2>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-            Review and process customer orders, verify transaction IDs, and issue digital links
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #f59e0b, #d97706)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 6px 16px rgba(245,158,11,0.3)",
+              color: "white",
+            }}>
+              <ShoppingBag size={20} />
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, color: "var(--foreground)", letterSpacing: "-0.03em" }}>
+              Order Management
+            </h2>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+            Review and process customer orders, verify transaction IDs, and issue digital links ({orders.length} orders)
           </p>
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-800/80 pb-3 overflow-x-auto">
+      {/* ── Status Filter Tabs ── */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        paddingBottom: 4,
+        borderBottom: "1.5px solid var(--card-border)",
+        overflowX: "auto",
+      }}>
         {statusTabs.map((tab) => {
           const isActive = statusFilter === tab.value;
           return (
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                isActive
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/80"
-              }`}
+              style={{
+                padding: "8px 18px",
+                borderRadius: 12,
+                fontSize: 13,
+                fontWeight: isActive ? 800 : 600,
+                color: isActive ? "#ffffff" : "var(--muted)",
+                background: isActive ? "var(--primary-gradient)" : "var(--card)",
+                border: isActive ? "1px solid transparent" : "1.5px solid var(--card-border)",
+                boxShadow: isActive ? "var(--shadow-primary)" : "var(--shadow-xs)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
+                fontFamily: "inherit",
+              }}
             >
               {tab.label}
             </button>
@@ -89,21 +161,25 @@ export default function AdminOrdersView() {
         })}
       </div>
 
-      {/* Orders List */}
+      {/* ── Orders List ── */}
       {isLoading ? (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+            <div key={i} className="skeleton" style={{ height: 140, borderRadius: 20 }} />
           ))}
         </div>
       ) : orders.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-12 text-center text-slate-400">
-          <ShoppingBag size={44} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No orders found</p>
-          <p className="text-xs text-slate-400 mt-1">There are no orders matching the selected status tab.</p>
+        <div className="card" style={{ padding: "56px 24px", textAlign: "center" }}>
+          <ShoppingBag size={46} style={{ color: "var(--muted-light)", margin: "0 auto 14px" }} />
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", marginBottom: 4 }}>
+            No orders found
+          </h3>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>
+            There are no customer orders matching the selected status tab.
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {orders.map((order: any) => {
             const sc = statusConfig[order.status] || statusConfig.PENDING;
             const Icon = sc.icon;
@@ -111,106 +187,257 @@ export default function AdminOrdersView() {
             return (
               <div
                 key={order.id}
-                className="group rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-4"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 16,
+                  padding: "20px 22px",
+                  background: "var(--card)",
+                  border: "1.5px solid var(--card-border)",
+                  borderRadius: 20,
+                  boxShadow: "var(--shadow-xs)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                className="stat-card-hover"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  <div className="space-y-3 flex-1">
-                    {/* Header Row */}
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                        #{order.id.slice(-8).toUpperCase()}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${sc.bgClass}`}>
-                        <Icon size={12} /> {sc.label}
-                      </span>
-                      <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
-                        <Calendar size={13} />
-                        {new Date(order.createdAt).toLocaleDateString("en-BD", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
+                {/* Header Row */}
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      background: "var(--muted-bg)",
+                      color: "var(--foreground)",
+                      border: "1px solid var(--card-border)",
+                    }}>
+                      #{order.id.slice(-8).toUpperCase()}
+                    </span>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1 bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <User size={10} /> Customer
-                        </p>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.user?.name || "Customer"}</p>
-                        <p className="text-[11px] text-slate-400 truncate">{order.user?.email}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Product</p>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.product?.title}</p>
-                        <p className="text-[11px] text-slate-400">Qty: {order.quantity} link(s)</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <DollarSign size={10} /> Amount
-                        </p>
-                        <p className="text-xs font-black text-indigo-600 dark:text-indigo-400 mt-0.5">৳{order.amountPaid?.toLocaleString()}</p>
-                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{order.paymentMethod}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <Hash size={10} /> Transaction ID
-                        </p>
-                        <p className="text-xs font-mono font-bold text-slate-900 dark:text-white mt-0.5 truncate">{order.senderNumber}</p>
-                        <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
-                          <span className="truncate">TXN: {order.transactionId}</span>
-                          <button
-                            onClick={() => copyTxn(order.id, order.transactionId)}
-                            className="p-0.5 text-slate-400 hover:text-indigo-600"
-                            title="Copy TXN ID"
-                          >
-                            {copiedTxn === order.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "4px 12px",
+                      borderRadius: 999,
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      background: sc.bg,
+                      color: sc.color,
+                      border: `1px solid ${sc.border}`,
+                    }}>
+                      <Icon size={13} /> {sc.label}
+                    </span>
                   </div>
 
-                  {/* Pending Action Buttons */}
-                  {order.status === "PENDING" && (
-                    <div className="flex sm:flex-col gap-2 shrink-0 self-end sm:self-center">
-                      <button
-                        onClick={() => handleApprove(order.id)}
-                        disabled={approving}
-                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all"
-                      >
-                        <CheckCircle size={14} /> Approve
-                      </button>
-                      <button
-                        onClick={() => { setSelectedOrder(order); setShowRejectModal(true); }}
-                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-xs transition-colors"
-                      >
-                        <XCircle size={14} /> Reject
-                      </button>
-                    </div>
-                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>
+                    <Calendar size={13} />
+                    {new Date(order.createdAt).toLocaleDateString("en-BD", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 </div>
 
-                {/* Delivered links list */}
-                {order.status === "APPROVED" && order.links?.length > 0 && (
-                  <div className="rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 p-3">
-                    <p className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
-                      <CheckCircle size={14} /> Delivered Links ({order.links.length})
+                {/* Details Grid */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 14,
+                  padding: "16px 18px",
+                  background: "var(--muted-bg)",
+                  border: "1px solid var(--card-border)",
+                  borderRadius: 16,
+                }}>
+                  {/* Customer Info */}
+                  <div>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 5 }}>
+                      <User size={12} /> Customer
+                    </span>
+                    <p style={{ fontSize: 13.5, fontWeight: 800, color: "var(--foreground)", margin: "4px 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {order.user?.name || "Customer"}
                     </p>
-                    <div className="space-y-1">
+                    <p style={{ fontSize: 11.5, color: "var(--muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {order.user?.email}
+                    </p>
+                  </div>
+
+                  {/* Product & Qty */}
+                  <div>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 5 }}>
+                      <PackageCheck size={12} /> Product
+                    </span>
+                    <p style={{ fontSize: 13.5, fontWeight: 800, color: "var(--foreground)", margin: "4px 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {order.product?.title}
+                    </p>
+                    <p style={{ fontSize: 11.5, color: "var(--muted)", margin: 0 }}>
+                      Quantity: {order.quantity} link(s)
+                    </p>
+                  </div>
+
+                  {/* Payment Amount */}
+                  <div>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 5 }}>
+                      <DollarSign size={12} /> Payment
+                    </span>
+                    <p style={{ fontSize: 14, fontWeight: 900, color: "var(--primary)", margin: "4px 0 2px" }}>
+                      ৳{order.amountPaid ? Number(order.amountPaid).toLocaleString() : order.totalAmount?.toLocaleString()}
+                    </p>
+                    <p style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)", margin: 0 }}>
+                      {order.paymentMethod || "Manual Transfer"}
+                    </p>
+                  </div>
+
+                  {/* Verification Info */}
+                  <div>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 5 }}>
+                      <Hash size={12} /> Verification
+                    </span>
+                    <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--foreground)", margin: "4px 0 2px", display: "flex", alignItems: "center", gap: 4 }}>
+                      <Phone size={11} style={{ color: "var(--muted)" }} />
+                      {order.senderNumber || order.senderPhone || "N/A"}
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--foreground)", fontWeight: 700 }}>
+                      <span>TXN: {order.transactionId}</span>
+                      <button
+                        onClick={() => copyTxn(order.id, order.transactionId)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--muted)",
+                          padding: 2,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        title="Copy Transaction ID"
+                      >
+                        {copiedTxn === order.id ? (
+                          <Check size={13} style={{ color: "#10b981" }} />
+                        ) : (
+                          <Copy size={13} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status-specific Footer Actions / Details */}
+                {order.status === "PENDING" && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, paddingTop: 4 }}>
+                    <button
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowRejectModal(true);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "9px 18px",
+                        borderRadius: 12,
+                        background: "rgba(239,68,68,0.08)",
+                        color: "#ef4444",
+                        border: "1px solid rgba(239,68,68,0.2)",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        transition: "all 0.18s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      <XCircle size={15} />
+                      Reject Order
+                    </button>
+
+                    <button
+                      onClick={() => handleApprove(order.id)}
+                      disabled={approving}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "9px 20px",
+                        borderRadius: 12,
+                        background: "linear-gradient(135deg, #10b981, #059669)",
+                        color: "#ffffff",
+                        border: "none",
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        boxShadow: "0 6px 18px rgba(16,185,129,0.3)",
+                        transition: "all 0.18s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {approving && <span className="spinner" />}
+                      <CheckCircle2 size={15} />
+                      Approve Order
+                    </button>
+                  </div>
+                )}
+
+                {/* Approved Links Box */}
+                {order.status === "APPROVED" && order.links?.length > 0 && (
+                  <div style={{
+                    padding: 14,
+                    borderRadius: 14,
+                    background: "rgba(16,185,129,0.06)",
+                    border: "1px solid rgba(16,185,129,0.18)",
+                  }}>
+                    <p style={{ fontSize: 11.5, fontWeight: 800, color: "#059669", margin: "0 0 8px", display: "flex", alignItems: "center", gap: 6 }}>
+                      <CheckCircle2 size={14} /> Delivered Redeem Links ({order.links.length})
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {order.links.map((link: any, idx: number) => (
-                        <p key={link.id} className="text-[11px] font-mono text-slate-700 dark:text-slate-300 truncate bg-white/70 dark:bg-slate-900/60 px-2.5 py-1 rounded-md border border-emerald-100 dark:border-emerald-900/30">
-                          {idx + 1}. {link.url}
-                        </p>
+                        <div
+                          key={link.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "8px 12px",
+                            borderRadius: 10,
+                            background: "var(--card)",
+                            border: "1px solid var(--card-border)",
+                            fontSize: 12,
+                            fontFamily: "var(--font-mono)",
+                            color: "var(--foreground)",
+                          }}
+                        >
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {idx + 1}. {link.url}
+                          </span>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "var(--primary)", display: "flex", alignItems: "center", paddingLeft: 8 }}
+                          >
+                            <ExternalLink size={13} />
+                          </a>
+                        </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Rejected Reason Box */}
+                {order.status === "REJECTED" && order.adminNote && (
+                  <div style={{
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    background: "rgba(239,68,68,0.06)",
+                    border: "1px solid rgba(239,68,68,0.18)",
+                    color: "#ef4444",
+                    fontSize: 12.5,
+                  }}>
+                    <strong>Rejection Reason:</strong> {order.adminNote}
                   </div>
                 )}
               </div>
@@ -219,41 +446,105 @@ export default function AdminOrdersView() {
         </div>
       )}
 
-      {/* Reject Modal Sheet */}
+      {/* ── Reject Modal Sheet ── */}
       {showRejectModal && (
         <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
-          <div className="modal-sheet max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3.5 mb-4">
-              <h3 className="text-base font-extrabold text-rose-600 flex items-center gap-2">
-                <XCircle size={18} /> Reject Customer Order
-              </h3>
+          <div className="modal-sheet" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingBottom: 14,
+              marginBottom: 16,
+              borderBottom: "1px solid var(--card-border)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "rgba(239,68,68,0.12)",
+                  color: "#ef4444",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  <XCircle size={18} />
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--foreground)", margin: 0 }}>
+                  Reject Customer Order
+                </h3>
+              </div>
+
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                style={{
+                  background: "var(--muted-bg)",
+                  border: "none",
+                  borderRadius: 999,
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "var(--muted)",
+                }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Provide a reason for rejection. This note will be recorded in customer&apos;s order details.
+
+            <p style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 16, lineHeight: 1.5 }}>
+              Provide a reason for rejection. This note will be visible in the customer&apos;s order details.
             </p>
+
             <textarea
-              className="input min-h-[90px] mb-4"
-              placeholder="e.g. Transaction ID not found in bKash statement or amount mismatch..."
+              className="input"
+              style={{ minHeight: 96, resize: "vertical", marginBottom: 20 }}
+              placeholder="e.g. Transaction ID not found in bKash statement or payment amount mismatch..."
               value={rejectNote}
               onChange={(e) => setRejectNote(e.target.value)}
             />
-            <div className="flex items-center gap-3">
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                style={{
+                  flex: 1,
+                  padding: "11px 16px",
+                  borderRadius: 12,
+                  background: "var(--muted-bg)",
+                  border: "1px solid var(--card-border)",
+                  color: "var(--foreground)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleReject}
                 disabled={rejecting}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/25 inline-flex items-center justify-center gap-2"
+                style={{
+                  flex: 1,
+                  padding: "11px 16px",
+                  borderRadius: 12,
+                  background: "#ef4444",
+                  color: "#ffffff",
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  boxShadow: "0 6px 18px rgba(239,68,68,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  fontFamily: "inherit",
+                }}
               >
                 {rejecting && <span className="spinner" />}
                 Confirm Reject
@@ -265,4 +556,3 @@ export default function AdminOrdersView() {
     </div>
   );
 }
-
